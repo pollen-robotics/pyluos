@@ -1,17 +1,17 @@
+from .dxl import DynamixelMotor
 from .distance import Distance
 from .button import Button
 from .potard import Potard
 from .servo import Servo
 from .relay import Relay
-from .dxl import DxlBus
 from .led import Led
 
 
 __all__ = [
     'name2mod',
+    'DynamixelMotor',
     'Distance',
     'Button',
-    'DxlBus',
     'Potard',
     'Servo',
     'Relay',
@@ -19,8 +19,8 @@ __all__ = [
 ]
 
 name2mod = {
+    'dynamixel': DynamixelMotor,
     'distance': Distance,
-    'dynamixel': DxlBus,
     'button': Button,
     'potard': Potard,
     'servo': Servo,

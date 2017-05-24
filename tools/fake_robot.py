@@ -80,7 +80,7 @@ class FakeRobot(WebSocketHandler):
                     'alias': 'my_potentiometer',
                     'id': 5,
                     'type': 'potard',
-                    'value': 50,
+                    'position': randint(0, 100),
                 },
                 {
                     'alias': 'my_relay',
@@ -97,14 +97,14 @@ class FakeRobot(WebSocketHandler):
                     'alias': 'my_dxl_1',
                     'id': 8,
                     'type': 'dynamixel',
-                    'position': randint(0, 180),
+                    'present_position': randint(0, 180),
                 },
                 {
                     'alias': 'my_dxl_2',
                     'id': 9,
                     'type': 'dynamixel',
-                    'position': randint(0, 180),
-                    'speed': randint(0, 100),
+                    'present_position': randint(0, 180),
+                    'present_speed': randint(0, 100),
                 },
             ]
         }

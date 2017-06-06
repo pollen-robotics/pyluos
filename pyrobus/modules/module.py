@@ -1,7 +1,12 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
+
+Event = namedtuple('Event', ('name', 'old_val', 'new_val'))
 
 
 class Input(object):
+    def __init__(self, events={}):
+        self._evt = events
+
     def __get__(self, instance, owner):
         return instance.__dict__.get(self.label, None)
 
@@ -10,6 +15,9 @@ class Input(object):
 
 
 class Output(object):
+    def __init__(self, events={}):
+        self._evt = events
+
     def __get__(self, instance, owner):
         return instance.__dict__.get(self.label, None)
 
@@ -24,11 +32,16 @@ class Output(object):
 
 class Plug(type):
     def __new__(cls, name, bases, attrs):
+        evts = defaultdict(dict)
         for n, v in attrs.items():
             if isinstance(v, Input) or isinstance(v, Output):
-                v.label = n
+                v.label = 'value'
+                if v._evt:
+                    evts.update({v.label: v._evt})
 
-        return type.__new__(cls, name, bases, attrs)
+        plug = type.__new__(cls, name, bases, attrs)
+        plug._events = dict(evts)
+        return plug
 
 
 class Module(object, metaclass=Plug):
@@ -52,7 +65,16 @@ class Module(object, metaclass=Plug):
         new_state.pop('alias')
 
         for key, new_val in new_state.items():
+            old_val = self.__dict__.get(key, None)
             self.__dict__[key] = new_val
+
+            for name, pred in self._events[key].items():
+                evt = Event(name, old_val, new_val)
+                if pred(evt):
+                    self._emit(evt)
+
+    def _emit(self, evt):
+        print('Emit {}'.format(evt))
 
     def _push_value(self, key, new_val):
         cmd = {

@@ -31,16 +31,8 @@ class Robot(object):
         self._log('Connected to "{}".'.format(host))
 
         # We force a first poll to setup our model.
-        self._setup()
+        self.detect()
         self._log('Robot setup.')
-
-        self._last_update = time.time()
-        self._running = True
-
-        # Setup both poll/push synchronization loops.
-        self._poll_bg = threading.Thread(target=self._poll_and_up)
-        self._poll_bg.daemon = True
-        self._poll_bg.start()
 
         if not (test_mode or run_from_unittest()):
             self._metrics_pub = Publisher(robot=self)
@@ -50,6 +42,62 @@ class Robot(object):
             s = c.socket(zmq.PUB)
             s.connect('tcp://127.0.0.1:33000')
             self._s = s
+
+    def detect(self):
+        # TODO: why needed?
+        for _ in range(2):
+            self._stop_sync()
+
+            self._log('Sending detection signal.')
+            self._send({'detection': {}})
+
+            self._log('Waiting for first state...')
+            # we make it twice to prevent previous detection
+            _ = self._poll_once()
+            state = self._poll_once()
+
+            gate = next(g for g in state['modules']
+                        if g['type'] == 'gate')
+            self._name = gate['alias']
+
+            modules = [mod for mod in state['modules']
+                       if mod['type'] in name2mod.keys()]
+
+            self._old_cmd = defaultdict(lambda: defaultdict(int))
+            self._cmd = defaultdict(lambda: defaultdict(int))
+
+            self.modules = [
+                name2mod[mod['type']](id=mod['id'],
+                                      alias=mod['alias'],
+                                      robot=self)
+                for mod in modules
+            ]
+            # We push our current state to make sure that
+            # both our model and the hardware are synced.
+            self._push_once()
+
+            for mod in self.modules:
+                setattr(self, mod.alias, mod)
+
+            self._start_sync()
+
+    def _start_sync(self):
+        if not self.alive:
+            # self._log('Starting synchronization.')
+            # Setup both poll/push synchronization loops.
+            self._last_update = time.time()
+            self._running = True
+
+            self._poll_bg = threading.Thread(target=self._poll_and_up)
+            self._poll_bg.daemon = True
+            self._poll_bg.start()
+
+    def _stop_sync(self):
+        if self.alive:
+            # self._log('Stopping synchronization.')
+            self._running = False
+            self._poll_bg.join()
+            self._io.flush()
 
     @property
     def state(self):
@@ -66,43 +114,13 @@ class Robot(object):
 
     @property
     def alive(self):
-        dt = time.time() - self._last_update
-        return self._running and dt < self._heartbeat_timeout
+        return (hasattr(self, '_poll_bg') and
+                self._running and
+                (time.time() - self._last_update) < self._heartbeat_timeout)
 
     def close(self):
-        self._running = False
-        self._poll_bg.join()
+        self._stop_sync()
         self._io.close()
-
-    def _setup(self):
-        self._log('Sending detection signal.')
-        self._send({'detection': {}})
-
-        self._log('Waiting for first state...')
-        state = self._poll_once()
-
-        gate = next(g for g in state['modules']
-                    if g['type'] == 'gate')
-        self._name = gate['alias']
-
-        modules = [mod for mod in state['modules']
-                   if mod['type'] in name2mod.keys()]
-
-        self._old_cmd = defaultdict(lambda: defaultdict(int))
-        self._cmd = defaultdict(lambda: defaultdict(int))
-
-        self.modules = [
-            name2mod[mod['type']](id=mod['id'],
-                                  alias=mod['alias'],
-                                  robot=self)
-            for mod in modules
-        ]
-        # We push our current state to make sure that
-        # both our model and the hardware are synced.
-        self._push_once()
-
-        for mod in self.modules:
-            setattr(self, mod.alias, mod)
 
     # Poll state from hardware.
     def _poll_once(self):

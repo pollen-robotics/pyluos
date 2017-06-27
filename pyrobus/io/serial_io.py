@@ -27,3 +27,6 @@ class Serial(IOHandler):
 
     def close(self):
         self._serial.close()
+
+    def flush(self):
+        self._serial.flush()

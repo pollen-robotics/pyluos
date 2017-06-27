@@ -30,6 +30,9 @@ class IOHandler(object):
     def dumps(self, msg):
         return json.dumps(msg).encode()
 
+    def flush(self):
+        pass
+
 
 from .ws import Ws
 from .serial_io import Serial

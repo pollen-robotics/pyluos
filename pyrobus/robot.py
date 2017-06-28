@@ -53,7 +53,7 @@ class Robot(object):
 
             self._log('Waiting for first state...')
             # we make it twice to prevent previous detection
-            _ = self._poll_once()
+            self._poll_once()
             state = self._poll_once()
 
             gate = next(g for g in state['modules']

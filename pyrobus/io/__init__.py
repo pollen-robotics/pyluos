@@ -17,15 +17,27 @@ class IOHandler(object):
         raise NotImplementedError
 
     def send(self, msg):
-        self.write(self.dumps(msg))
+        sent_msg = self.dumps(msg)
+        # print(sent_msg)
+        self.write(sent_msg)
 
     def write(self, data):
         raise NotImplementedError
 
     def loads(self, data):
-        if type(data) == bytes:
-            data = data.decode()
-        return json.loads(data)
+        try:
+            if type(data) == bytes:
+                data = data.decode()
+            # import time
+            # time.sleep(0.10)
+            # # print(data)
+            # import sys
+            # sys.stdout.flush()
+            return json.loads(data)
+        except Exception as e:
+            print(data)
+            print(e)
+            return
 
     def dumps(self, msg):
         return json.dumps(msg).encode()

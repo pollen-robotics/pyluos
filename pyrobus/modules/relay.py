@@ -17,6 +17,5 @@ class Relay(Module):
         self._set(0)
 
     def _set(self, new_val):
-        if new_val != self._value:
-            self._value = new_val
-            self._push_value('state', new_val)
+        self._value = new_val
+        self._push_value('state', new_val, force=True)

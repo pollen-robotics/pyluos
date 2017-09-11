@@ -118,7 +118,10 @@ class Robot(object):
 
     # Poll state from hardware.
     def _poll_once(self):
-        self._state = self._io.read()
+        while True:
+            self._state = self._io.read()
+            if self._state is not None:
+                break
         self._state['timestamp'] = time.time()
         return self._state
 

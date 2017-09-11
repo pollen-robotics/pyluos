@@ -13,9 +13,8 @@ class Servo(Module):
 
     @target_position.setter
     def target_position(self, new_pos):
-        if new_pos != self._value:
-            self._value = new_pos
-            self._push_value('target_position', new_pos)
+        self._value = new_pos
+        self._push_value('target_position', new_pos, force=True)
 
     @property
     def target_speed(self):
